@@ -1,0 +1,59 @@
+body {
+  background-color: #f4f6f9;
+  font-family: Arial, sans-serif;
+}
+
+.sidebar {
+  height: 100vh;
+  background: #1B5E20;
+  color: white;
+  padding: 20px;
+  position: fixed;
+  width: 240px;
+  box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+}
+
+.sidebar a {
+  color: #e9ecef;
+  text-decoration: none;
+  display: block;
+  padding: 10px 0;
+  font-weight: 500;
+}
+
+.sidebar a:hover {
+  color: white;
+}
+
+.sidebar-header {
+  display: flex;
+  align-items: center;
+  gap: 10px; /* space between logo and text */
+}
+
+.logo {
+  width: 90px;  /* adjust size */
+  height: auto;
+}
+
+.content {
+  margin-left: 260px;
+  padding: 30px;
+}
+
+.table th {
+  background-color: #1B5E20;
+  color: white;
+}
+
+.card {
+  border-radius: 10px;
+}
+
+footer {
+  margin-top: 40px;
+}
+
+.page-wrap {
+  max-width: 1100px;
+}

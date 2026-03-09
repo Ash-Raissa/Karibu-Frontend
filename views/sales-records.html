@@ -1,0 +1,564 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KGL Sales Records</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+  <link href="/css/dashboard.css" rel="stylesheet">
+</head>
+<body>
+  <!-- Sidebar navigation for manager pages -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <img src="/imgs/logo.png" alt="KGL Logo" class="logo">
+      <h4>Manager</h4>
+    </div>
+
+    <hr>
+
+    <a href="/manager.html"><i class="fa-solid fa-chart-line me-2"></i>Dashboard</a>
+    <a href="/procurement-form.html"><i class="fa-solid fa-boxes-stacked me-2"></i>Procurement</a>
+    <a href="/sales-records.html"><i class="fa-solid fa-money-bill-wave me-2"></i>Sales</a>
+    <a href="/reports.html"><i class="fa-solid fa-chart-column me-2"></i>Reports</a>
+
+    <a href="/index.html" id="logoutLink"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</a>
+  </div>
+
+  <!-- Main sales records content -->
+  <div class="content">
+    <div class="d-flex justify-content-between align-items-center mb-4">
+      <div>
+        <h3 class="mb-1">Sales Records</h3>
+      </div>
+      <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#saleModal">
+        <i class="fa-solid fa-plus me-2"></i>Record Sale
+      </button>
+    </div>
+
+    <!-- Feedback messages -->
+    <div id="saleAlert" class="alert d-none" role="alert"></div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Cash Sales</h5>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>Produce</th>
+                <th>Type</th>
+                <th>Buyer</th>
+                <th>Tonnage</th>
+                <th>Amount Paid</th>
+                <th>Agent</th>
+                <th>Branch</th>
+              </tr>
+            </thead>
+            <tbody id="cashSalesTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Credit Sales</h5>
+      </div>
+      <div class="card-body">
+        <!-- Filters for credit sales table -->
+        <form id="creditFilterForm" class="row g-2 align-items-end mb-3">
+          <div class="col-md-3">
+            <label class="form-label">Due From</label>
+            <input type="date" class="form-control" id="dueFrom">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Due To</label>
+            <input type="date" class="form-control" id="dueTo">
+          </div>
+          <div class="col-md-3">
+            <div class="form-check mt-4">
+              <input class="form-check-input" type="checkbox" id="overdueOnly">
+              <label class="form-check-label" for="overdueOnly">Overdue only</label>
+            </div>
+          </div>
+          <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-sm border-0 bg-transparent text-dark" title="Filter" aria-label="Filter">
+              <i class="fa-solid fa-filter"></i>
+            </button>
+            <button type="button" class="btn btn-sm border-0 bg-transparent text-dark" id="clearCreditFilterBtn" title="Clear Filter" aria-label="Clear Filter">
+              <i class="fa-solid fa-rotate-left"></i>
+            </button>
+          </div>
+        </form>
+
+        <div class="table-responsive">
+          <table class="table table-bordered table-striped">
+            <thead>
+              <tr>
+                <th>Produce</th>
+                <th>Type</th>
+                <th>Buyer</th>
+                <th>Tonnage</th>
+                <th>Amount Due</th>
+                <th>Agent</th>
+                <th>Branch</th>
+                <th>Due Date</th>
+                <th>Status</th>
+                <th>Action</th>
+              </tr>
+            </thead>
+            <tbody id="creditSalesTableBody"></tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <!-- Modal form used to record cash or credit sales -->
+  <div class="modal fade" id="saleModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title"><i class="fa-solid fa-receipt me-2"></i>Record Sale</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+        <form id="saleForm">
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-4">
+                <label class="form-label">Sale Type</label>
+                <select class="form-select" id="saleType" name="saleType" required>
+                  <option value="cash">Cash</option>
+                  <option value="credit">Credit</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Produce Name</label>
+                <select class="form-select" name="produceName" required>
+                  <option value="">Select Produce</option>
+                  <option value="Beans">Beans</option>
+                  <option value="Grain Maize">Grain Maize</option>
+                  <option value="Cow Peas">Cow Peas</option>
+                  <option value="G-nuts">G-nuts</option>
+                  <option value="Soybeans">Soybeans</option>
+                </select>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Produce Type</label>
+                <input type="text" class="form-control" value="Cereal" readonly>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Tonnage (kg)</label>
+                <input type="number" class="form-control" name="tonnage" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Buyer Name</label>
+                <input type="text" class="form-control" name="buyerName" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Agent Name</label>
+                <input type="text" class="form-control" name="salesAgentName" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Branch</label>
+                <select class="form-select" name="branch" required>
+                  <option value="">Select Branch</option>
+                  <option value="Maganjo">Maganjo</option>
+                  <option value="Matugga">Matugga</option>
+                </select>
+              </div>
+            </div>
+
+            <div id="cashFields" class="row g-3 mt-1">
+              <div class="col-md-4">
+                <label class="form-label">Amount Paid (UGX)</label>
+                <input type="number" class="form-control" name="amountPaid" id="amountPaid">
+              </div>
+            </div>
+
+            <div id="creditFields" class="row g-3 mt-1 d-none">
+              <div class="col-md-4">
+                <label class="form-label">Amount Due (UGX)</label>
+                <input type="number" class="form-control" name="amountDue" id="amountDue">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">National ID</label>
+                <input type="text" class="form-control" name="nationalId" id="nationalId">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Due Date</label>
+                <input type="date" class="form-control" name="dueDate" id="dueDate">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Location (Optional)</label>
+                <input type="text" class="form-control" name="location">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Phone (Optional)</label>
+                <input type="text" class="form-control" name="phone">
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Dispatch Date (Optional)</label>
+                <input type="date" class="form-control" name="dateOfDispatch">
+              </div>
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-primary">Save Sale</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+    // Base URL for backend API requests.
+    const API_BASE_URL = "http://localhost:3000";
+    // Read authentication token saved after login.
+    const token = localStorage.getItem('token');
+
+    // If no token exists, user is not authenticated.
+    if (!token) {
+      // Redirect unauthenticated user to login page.
+      window.location.href = '/login.html';
+    }
+
+    // Build headers and include bearer token for protected endpoints.
+    function authHeaders(extra = {}) {
+      // Return extra headers merged with Authorization header.
+      return {
+        ...extra,
+        Authorization: `Bearer ${token}`
+      };
+    }
+
+    // Handle unauthorized responses by clearing session and redirecting.
+    function handleAuthError(res) {
+      // Check for unauthorized or forbidden status codes.
+      if (res.status === 401 || res.status === 403) {
+        // Remove token from local storage.
+        localStorage.removeItem('token');
+        // Redirect to login page.
+        window.location.href = '/login.html';
+        // Tell caller auth error was handled.
+        return true;
+      }
+      // Return false when no auth error occurred.
+      return false;
+    }
+
+    // Setup logout click behavior.
+    function setupLogout() {
+      // Get logout link element.
+      const logoutLink = document.getElementById('logoutLink');
+      // Stop if logout link does not exist.
+      if (!logoutLink) return;
+
+      // Attach async click handler for logout.
+      logoutLink.addEventListener('click', async (e) => {
+        // Prevent normal navigation behavior.
+        e.preventDefault();
+        // Try to notify backend of logout.
+        try {
+          // Send logout request.
+          await fetch(`${API_BASE_URL}/logout`, { method: 'POST', headers: authHeaders() });
+        // Ignore backend/network errors during logout.
+        } catch (_) {}
+        // Remove saved token.
+        localStorage.removeItem('token');
+        // Remove cached profile data.
+        localStorage.removeItem('userProfile');
+        // Navigate to login page.
+        window.location.href = '/login.html';
+      });
+    }
+
+    // Show temporary feedback alert on the page.
+    function showAlert(type, message, timeoutMs = 3500) {
+      // Get alert container.
+      const alert = document.getElementById("saleAlert");
+      // Set Bootstrap alert classes based on type.
+      alert.className = `alert alert-${type}`;
+      // Set alert text.
+      alert.textContent = message;
+      // Make alert visible.
+      alert.classList.remove("d-none");
+      // Auto-hide alert when timeout is enabled.
+      if (timeoutMs > 0) {
+        // Hide alert after timeout duration.
+        setTimeout(() => alert.classList.add("d-none"), timeoutMs);
+      }
+    }
+
+    // Load and render cash sales table records.
+    async function loadCashSales() {
+      // Request cash sales list from backend.
+      const res = await fetch(`${API_BASE_URL}/cash-sales`, { headers: authHeaders() });
+      // Stop if user was redirected due to auth failure.
+      if (handleAuthError(res)) return;
+      // Parse JSON response payload.
+      const result = await res.json();
+      // Get cash sales table body element.
+      const table = document.getElementById("cashSalesTableBody");
+      // Clear previous table rows.
+      table.innerHTML = "";
+
+      // Loop through sales array and append rows.
+      (result.sales || []).forEach((sale) => {
+        // Add one row for each cash sale.
+        table.innerHTML += `
+          <tr>
+            <td>${sale.produceName}</td>
+            <td>${sale.produceType || "Cereal"}</td>
+            <td>${sale.buyerName}</td>
+            <td>${sale.tonnage}</td>
+            <td>UGX ${sale.amountPaid}</td>
+            <td>${sale.salesAgentName}</td>
+            <td>${sale.branch}</td>
+          </tr>
+        `;
+      });
+    }
+
+    // Load credit sales with optional due-date and overdue filters.
+    async function loadCreditSales() {
+      // Read selected "due from" date filter.
+      const dueFrom = document.getElementById("dueFrom")?.value;
+      // Read selected "due to" date filter.
+      const dueTo = document.getElementById("dueTo")?.value;
+      // Read overdue-only checkbox state.
+      const overdueOnly = document.getElementById("overdueOnly")?.checked;
+      // Create query parameter builder.
+      const params = new URLSearchParams();
+      // Add dueFrom filter when provided.
+      if (dueFrom) params.set("dueFrom", dueFrom);
+      // Add dueTo filter when provided.
+      if (dueTo) params.set("dueTo", dueTo);
+      // Add overdueOnly filter when checked.
+      if (overdueOnly) params.set("overdueOnly", "true");
+
+      // Build query string from selected filters.
+      const query = params.toString() ? `?${params.toString()}` : "";
+      // Request filtered credit sales from backend.
+      const res = await fetch(`${API_BASE_URL}/credit-sales${query}`, { headers: authHeaders() });
+      // Stop if auth failure was handled.
+      if (handleAuthError(res)) return;
+      // Parse response payload.
+      const result = await res.json();
+      // Handle non-success HTTP response.
+      if (!res.ok) {
+        // Show API error or fallback message.
+        showAlert("danger", result.message || "Failed to load credit sales.");
+        // Stop processing on error.
+        return;
+      }
+      // Get credit sales table body element.
+      const table = document.getElementById("creditSalesTableBody");
+      // Clear previous rows.
+      table.innerHTML = "";
+      // Capture current time for overdue comparison.
+      const now = new Date();
+
+      // Render each credit sale as a table row.
+      (result.sales || []).forEach((sale) => {
+        // Determine overdue status for unpaid sales.
+        const isOverdue = sale.paymentStatus !== "paid" && sale.dueDate && new Date(sale.dueDate) < now;
+        // Compute status label shown in badge.
+        const statusLabel = sale.paymentStatus === "paid"
+          ? "paid"
+          : (isOverdue ? "overdue" : "unpaid");
+
+        // Append row with sale details and action button.
+        table.innerHTML += `
+          <tr>
+            <td>${sale.produceName}</td>
+            <td>${sale.produceType || "Cereal"}</td>
+            <td>${sale.buyerName}</td>
+            <td>${sale.tonnage}</td>
+            <td>UGX ${sale.amountDue}</td>
+            <td>${sale.salesAgentName}</td>
+            <td>${sale.branch || "-"}</td>
+            <td>${sale.dueDate ? new Date(sale.dueDate).toLocaleDateString() : "-"}</td>
+            <td>
+              <span class="badge ${statusLabel === "paid" ? "bg-success" : statusLabel === "overdue" ? "bg-danger" : "bg-warning text-dark"}">${statusLabel}</span>
+            </td>
+            <td>
+              ${sale.paymentStatus === "paid"
+                ? '<span class="text-muted small">Cleared</span>'
+                : `<button type="button" class="btn btn-sm border-0 bg-transparent text-dark mark-cleared-btn" data-id="${sale._id}" title="Mark Cleared" aria-label="Mark Cleared"><i class="fa-solid fa-circle-check"></i></button>`}
+            </td>
+          </tr>
+        `;
+      });
+    }
+
+    // Toggle cash/credit form fields based on selected sale type.
+    function updateSaleTypeFields() {
+      // Read current sale type value.
+      const saleType = document.getElementById("saleType").value;
+      // Get cash-specific field container.
+      const cashFields = document.getElementById("cashFields");
+      // Get credit-specific field container.
+      const creditFields = document.getElementById("creditFields");
+
+      // Show cash fields only when sale type is cash.
+      cashFields.classList.toggle("d-none", saleType !== "cash");
+      // Show credit fields only when sale type is credit.
+      creditFields.classList.toggle("d-none", saleType !== "credit");
+
+      // Require amountPaid only for cash sales.
+      document.getElementById("amountPaid").required = saleType === "cash";
+      // Require amountDue only for credit sales.
+      document.getElementById("amountDue").required = saleType === "credit";
+      // Require national ID only for credit sales.
+      document.getElementById("nationalId").required = saleType === "credit";
+      // Require due date only for credit sales.
+      document.getElementById("dueDate").required = saleType === "credit";
+    }
+
+    // Update visible fields whenever sale type selection changes.
+    document.getElementById("saleType").addEventListener("change", updateSaleTypeFields);
+
+    // Handle create-sale form submission.
+    document.getElementById("saleForm").addEventListener("submit", async (e) => {
+      // Prevent default form post behavior.
+      e.preventDefault();
+      // Get submitted form element.
+      const form = e.target;
+      // Convert form values to plain object.
+      const payload = Object.fromEntries(new FormData(form).entries());
+      // Check whether the sale should be stored as credit.
+      const isCredit = payload.saleType === "credit";
+      // Remove local helper field before sending payload.
+      delete payload.saleType;
+
+      // Start API submission flow.
+      try {
+        // Select endpoint based on sale type.
+        const endpoint = isCredit ? "/credit" : "/cash";
+        // Send sale record to backend.
+        const res = await fetch(`${API_BASE_URL}${endpoint}`, {
+          // Use POST to create sale.
+          method: "POST",
+          // Send JSON body with auth headers.
+          headers: authHeaders({ "Content-Type": "application/json" }),
+          // Convert payload object to JSON string.
+          body: JSON.stringify(payload)
+        });
+        // Stop if auth failure was handled.
+        if (handleAuthError(res)) return;
+
+        // Parse backend result.
+        const result = await res.json();
+        // Handle API validation/business errors.
+        if (!res.ok) {
+          // Close modal and show a short flash message when stock is insufficient.
+          const errorMessage = result.message || "Failed to record sale.";
+          const isInsufficientStock = /insufficient\s+stock/i.test(errorMessage);
+          if (isInsufficientStock) {
+            const modalEl = document.getElementById("saleModal");
+            const modal = bootstrap.Modal.getInstance(modalEl) || bootstrap.Modal.getOrCreateInstance(modalEl);
+            modal.hide();
+          }
+          // Show error alert with backend message.
+          showAlert("danger", errorMessage, 4000);
+          // Stop on failed request.
+          return;
+        }
+
+        // Show success message to user.
+        showAlert("success", "Sale recorded successfully.");
+        // Reset form to initial state.
+        form.reset();
+        // Re-apply field visibility/requirements after reset.
+        updateSaleTypeFields();
+
+        // Get sale modal root element.
+        const modalEl = document.getElementById("saleModal");
+        // Get active Bootstrap modal instance.
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        // Hide modal if an instance exists.
+        if (modal) modal.hide();
+
+        // Reload cash and credit tables in parallel.
+        await Promise.all([loadCashSales(), loadCreditSales()]);
+      // Catch network or unexpected runtime errors.
+      } catch (error) {
+        // Show connectivity error.
+        showAlert("danger", "Unable to connect to backend.");
+      }
+    });
+
+    // Handle credit filter form submission.
+    document.getElementById("creditFilterForm").addEventListener("submit", async (e) => {
+      // Prevent page reload.
+      e.preventDefault();
+      // Reload credit sales using selected filters.
+      await loadCreditSales();
+    });
+
+    // Clear all credit filters and reload table.
+    document.getElementById("clearCreditFilterBtn").addEventListener("click", async () => {
+      // Clear dueFrom date field.
+      document.getElementById("dueFrom").value = "";
+      // Clear dueTo date field.
+      document.getElementById("dueTo").value = "";
+      // Uncheck overdue-only filter.
+      document.getElementById("overdueOnly").checked = false;
+      // Reload credit sales without filters.
+      await loadCreditSales();
+    });
+
+    // Handle click actions inside credit sales table.
+    document.getElementById("creditSalesTableBody").addEventListener("click", async (e) => {
+      // Find closest "mark cleared" button from click target.
+      const button = e.target.closest(".mark-cleared-btn");
+      // Stop if click was not on action button.
+      if (!button) return;
+
+      // Read credit sale id from button data attribute.
+      const id = button.dataset.id;
+      // Send request to mark payment as cleared.
+      const res = await fetch(`${API_BASE_URL}/credit/${id}/pay`, {
+        // Use PATCH to update payment status.
+        method: "PATCH",
+        // Include authentication headers.
+        headers: authHeaders()
+      });
+      // Stop if auth failure was handled.
+      if (handleAuthError(res)) return;
+      // Parse backend response JSON.
+      const result = await res.json();
+
+      // Show error when backend update fails.
+      if (!res.ok) {
+        // Display API message or fallback.
+        showAlert("danger", result.message || "Failed to clear payment.");
+        // Stop on failure.
+        return;
+      }
+
+      // Show success message when payment is updated.
+      showAlert("success", "Payment marked as cleared.");
+      // Reload credit sales to reflect new status.
+      await loadCreditSales();
+    });
+
+    // Initialize sale-type form state on page load.
+    updateSaleTypeFields();
+    // Load both sales tables immediately.
+    Promise.all([loadCashSales(), loadCreditSales()]);
+    // Enable logout handling.
+    setupLogout();
+  </script>
+</body>
+</html>
+
+

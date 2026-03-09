@@ -1,0 +1,555 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KGL Manager Reports</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+  <link href="/css/dashboard.css" rel="stylesheet">
+</head>
+
+<body>
+  <!-- Sidebar navigation for manager pages -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <img src="/imgs/logo.png" alt="KGL Logo" class="logo">
+      <h4>Manager</h4>
+    </div>
+    <hr>
+    <a href="/manager.html"><i class="fa-solid fa-chart-line me-2"></i>Dashboard</a>
+    <a href="/procurement-form.html"><i class="fa-solid fa-boxes-stacked me-2"></i>Procurement</a>
+    <a href="/sales-records.html"><i class="fa-solid fa-money-bill-wave me-2"></i>Sales</a>
+    <a href="/reports.html"><i class="fa-solid fa-chart-column me-2"></i>Reports</a>
+    <a href="/index.html" id="logoutLink"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</a>
+  </div>
+
+  <!-- Main reports page content -->
+  <div class="content">
+    <div class="d-flex justify-content-between align-items-start flex-wrap gap-2 mb-4">
+      <div>
+        <h3 class="mb-1">Reports</h3>
+        <p class="text-muted mb-0">Operational summaries for sales, stock, and credit.</p>
+      </div>
+    </div>
+
+    <!-- Feedback messages -->
+    <div id="reportAlert" class="alert d-none" role="alert"></div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-body">
+        <!-- Filters used by stock and credit report tables -->
+        <form id="reportFilterForm" class="row g-2 align-items-end">
+          <div class="col-md-3">
+            <label class="form-label">Branch</label>
+            <select class="form-select" id="reportBranch">
+              <option value="">All Branches</option>
+              <option value="Maganjo">Maganjo</option>
+              <option value="Matugga">Matugga</option>
+            </select>
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Due From</label>
+            <input type="date" class="form-control" id="dueFrom">
+          </div>
+          <div class="col-md-3">
+            <label class="form-label">Due To</label>
+            <input type="date" class="form-control" id="dueTo">
+          </div>
+          <div class="col-md-3 d-flex gap-2">
+            <button type="submit" class="btn btn-primary">Apply</button>
+            <button type="button" class="btn btn-outline-secondary" id="clearReportFilterBtn">Clear</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="row g-3 mb-4">
+      <div class="col-lg-2 col-md-4 col-6">
+        <div class="card shadow-sm text-center p-3"><small class="text-muted">Today</small>
+          <h6 id="kpiToday">UGX 0</h6>
+        </div>
+      </div>
+      <div class="col-lg-2 col-md-4 col-6">
+        <div class="card shadow-sm text-center p-3"><small class="text-muted">This Week</small>
+          <h6 id="kpiWeek">UGX 0</h6>
+        </div>
+      </div>
+      <div class="col-lg-2 col-md-4 col-6">
+        <div class="card shadow-sm text-center p-3"><small class="text-muted">This Month</small>
+          <h6 id="kpiMonth">UGX 0</h6>
+        </div>
+      </div>
+      <div class="col-lg-2 col-md-4 col-6">
+        <div class="card shadow-sm text-center p-3"><small class="text-muted">Credit Sales</small>
+          <h6 id="kpiCredit">UGX 0</h6>
+        </div>
+      </div>
+      <div class="col-lg-2 col-md-4 col-6">
+        <div class="card shadow-sm text-center p-3"><small class="text-muted">Revenue</small>
+          <h6 id="kpiRevenue">UGX 0</h6>
+        </div>
+      </div>
+      <div class="col-lg-2 col-md-4 col-6">
+        <div class="card shadow-sm text-center p-3"><small class="text-muted">Profit Est.</small>
+          <h6 id="kpiProfit">UGX 0</h6>
+        </div>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Stock Report</h5>
+      </div>
+      <div class="card-body table-responsive">
+        <table class="table table-bordered table-striped mb-0">
+          <thead>
+            <tr>
+              <th>Produce</th>
+              <th>Type</th>
+              <th>Branch</th>
+              <th>Available (kg)</th>
+              <th>Selling Price</th>
+            </tr>
+          </thead>
+          <tbody id="reportStockBody"></tbody>
+        </table>
+      </div>
+    </div>
+
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Credit Report</h5>
+      </div>
+      <div class="card-body table-responsive">
+        <table class="table table-bordered table-striped mb-0">
+          <thead>
+            <tr>
+              <th>Buyer</th>
+              <th>Produce</th>
+              <th>Amount Due</th>
+              <th>Branch</th>
+              <th>Due Date</th>
+              <th>Status</th>
+            </tr>
+          </thead>
+          <tbody id="reportCreditBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+
+  <script>
+    // Auth setup and common helpers.
+    // Base URL of your backend API server
+    const API_BASE_URL = "http://localhost:3000";
+
+
+    // Get the authentication token that was saved after login
+    const token = localStorage.getItem("token");
+
+    // If no token exists, the user is not logged in
+    // Redirect them back to the login page
+    if (!token) window.location.href = "/login.html";
+
+
+    // Function to attach the Authorization token to API requests
+    // This ensures every request proves the user is logged in
+    function authHeaders(extra = {}) {
+      // Return a value from this function.
+      return {
+        // Execute this step as part of the page logic.
+        ...extra, // keeps any additional headers passed
+        // Execute this step as part of the page logic.
+        Authorization: `Bearer ${token}` // attaches the login token
+      // Close and end this object or function expression.
+      };
+    // Close the current code block.
+    }
+
+
+    // Handles authentication errors from the server
+    // If the token is expired or invalid, force logout
+    function handleAuthError(res) {
+
+      // 401 = Unauthorized
+      // 403 = Forbidden
+      if (res.status === 401 || res.status === 403) {
+
+        // Remove stored login token
+        localStorage.removeItem("token");
+
+        // Redirect user to login page
+        window.location.href = "/login.html";
+
+        // Return a value from this function.
+        return true;
+      // Close the current code block.
+      }
+
+      // Return a value from this function.
+      return false;
+    // Close the current code block.
+    }
+
+
+    // Shows alerts/messages at the top of the report page
+    function showAlert(type, message) {
+
+      // Find alert container
+      const alert = document.getElementById("reportAlert");
+
+      // Change alert style depending on message type
+      // Example: success, danger, warning
+      alert.className = `alert alert-${type}`;
+
+      // Insert message text
+      alert.textContent = message;
+
+      // Make the alert visible
+      alert.classList.remove("d-none");
+    // Close the current code block.
+    }
+
+
+    // Handles logout functionality
+    function setupLogout() {
+
+      // Declare a constant value used in this script.
+      const logoutLink = document.getElementById("logoutLink");
+
+      // If logout button doesn't exist, stop
+      if (!logoutLink) return;
+
+      // When logout is clicked
+      logoutLink.addEventListener("click", async (e) => {
+
+        // Execute this step as part of the page logic.
+        e.preventDefault(); // prevent page reload
+
+        // Start error-handled execution for the following operations.
+        try {
+          // Tell backend server user wants to logout
+          await fetch(`${API_BASE_URL}/logout`, {
+            // Execute this step as part of the page logic.
+            method: "POST",
+            // Execute this step as part of the page logic.
+            headers: authHeaders()
+          // Execute this step as part of the page logic.
+          });
+
+        // Handle errors thrown by the previous try block.
+        } catch (_) {
+          // ignore errors (server may already be offline)
+        }
+
+        // Remove login data stored in browser
+        localStorage.removeItem("token");
+        // Remove stored session data from local storage.
+        localStorage.removeItem("userProfile");
+
+        // Redirect back to login page
+        window.location.href = "/login.html";
+      // Execute this step as part of the page logic.
+      });
+    // Close the current code block.
+    }
+
+
+    // Converts numbers into Uganda currency format
+    // Example: 500000 -> UGX 500,000
+    function formatUGX(value) {
+      // Return a value from this function.
+      return `UGX ${Number(value || 0).toLocaleString()}`;
+    // Close the current code block.
+    }
+
+
+    // Checks if the logged in user is actually a MANAGER
+    // Prevents other roles from accessing this page
+    async function guardManagerAccess() {
+
+      // Request user profile from backend
+      const res = await fetch(`${API_BASE_URL}/auth/profile`, {
+        // Execute this step as part of the page logic.
+        headers: authHeaders()
+      // Execute this step as part of the page logic.
+      });
+
+      // If token invalid, logout
+      if (handleAuthError(res)) return false;
+
+      // Declare a constant value used in this script.
+      const user = await res.json();
+
+      // If the role is NOT manager, deny access
+      if ((user.role || "").toLowerCase() !== "manager") {
+
+        // redirect to login page
+        window.location.href = "/login.html";
+
+        // Return a value from this function.
+        return false;
+      // Close the current code block.
+      }
+
+      // Return a value from this function.
+      return true;
+    // Close the current code block.
+    }
+
+
+    // Loads dashboard KPI summary numbers
+    // (Top statistics cards)
+    async function loadKpis() {
+
+      // Declare a constant value used in this script.
+      const res = await fetch(`${API_BASE_URL}/manager/stats`, {
+        // Execute this step as part of the page logic.
+        headers: authHeaders()
+      // Execute this step as part of the page logic.
+      });
+
+      // If token invalid, logout
+      if (handleAuthError(res)) return;
+
+      // Declare a constant value used in this script.
+      const result = await res.json();
+
+      // If server error occurs
+      if (!res.ok)
+        // Return a value from this function.
+        return showAlert("danger", result.message || "Failed to load KPIs.");
+
+      // Declare a constant value used in this script.
+      const data = result.data || {};
+
+      // Update dashboard cards
+      document.getElementById("kpiToday").textContent = formatUGX(data.totalSalesToday);
+      // Read a DOM element from the page by its ID.
+      document.getElementById("kpiWeek").textContent = formatUGX(data.totalSalesThisWeek);
+      // Read a DOM element from the page by its ID.
+      document.getElementById("kpiMonth").textContent = formatUGX(data.totalSalesThisMonth);
+      // Read a DOM element from the page by its ID.
+      document.getElementById("kpiCredit").textContent = formatUGX(data.totalCreditSales);
+      // Read a DOM element from the page by its ID.
+      document.getElementById("kpiRevenue").textContent = formatUGX(data.revenueGenerated);
+      // Read a DOM element from the page by its ID.
+      document.getElementById("kpiProfit").textContent = formatUGX(data.profitEstimate);
+    // Close the current code block.
+    }
+
+
+    // Loads stock inventory report table
+    async function loadStockReport() {
+
+      // Get selected branch filter
+      const branch = document.getElementById("reportBranch").value;
+
+      // Build query string if branch selected
+      const qs = branch ? `?branch=${encodeURIComponent(branch)}` : "";
+
+      // Declare a constant value used in this script.
+      const res = await fetch(`${API_BASE_URL}/stock${qs}`, {
+        // Execute this step as part of the page logic.
+        headers: authHeaders()
+      // Execute this step as part of the page logic.
+      });
+
+      // Handle invalid login token
+      if (handleAuthError(res)) return;
+
+      // Declare a constant value used in this script.
+      const result = await res.json();
+
+      // Check a condition before running the next block.
+      if (!res.ok)
+        // Return a value from this function.
+        return showAlert("danger", result.message || "Failed to load stock report.");
+
+      // Create table rows from returned stock data
+      const rows = (result.data || []).map((item) => `
+        <tr>
+          <td>${item.produceName}</td>
+          <td>${item.produceType || "Cereal"}</td>
+          <td>${item.branch}</td>
+          <td>${item.totalTonnage}</td>
+          <td>UGX ${Number(item.sellingPrice || 0).toLocaleString()}</td>
+        </tr>
+      `).join("");
+
+      // Insert rows into table body
+      document.getElementById("reportStockBody").innerHTML =
+        // Execute this step as part of the page logic.
+        rows || "<tr><td colspan='5'>No stock data.</td></tr>";
+    // Close the current code block.
+    }
+
+
+    // Loads credit sales report table
+    async function loadCreditReport() {
+
+      // Declare a constant value used in this script.
+      const branch = document.getElementById("reportBranch").value;
+      // Declare a constant value used in this script.
+      const dueFrom = document.getElementById("dueFrom").value;
+      // Declare a constant value used in this script.
+      const dueTo = document.getElementById("dueTo").value;
+
+      // Build URL parameters for filtering
+      const params = new URLSearchParams();
+
+      // Check a condition before running the next block.
+      if (branch) params.set("branch", branch);
+      // Check a condition before running the next block.
+      if (dueFrom) params.set("dueFrom", dueFrom);
+      // Check a condition before running the next block.
+      if (dueTo) params.set("dueTo", dueTo);
+
+      // Declare a constant value used in this script.
+      const query = params.toString() ? `?${params.toString()}` : "";
+
+      // Declare a constant value used in this script.
+      const res = await fetch(`${API_BASE_URL}/credit-sales${query}`, {
+        // Execute this step as part of the page logic.
+        headers: authHeaders()
+      // Execute this step as part of the page logic.
+      });
+
+      // Check a condition before running the next block.
+      if (handleAuthError(res)) return;
+
+      // Declare a constant value used in this script.
+      const result = await res.json();
+
+      // Check a condition before running the next block.
+      if (!res.ok)
+        // Return a value from this function.
+        return showAlert("danger", result.message || "Failed to load credit report.");
+
+      // Declare a constant value used in this script.
+      const now = new Date();
+
+      // Create rows showing credit sales
+      const rows = (result.sales || []).map((sale) => {
+
+        // Check if payment is overdue
+        const isOverdue =
+          // Execute this step as part of the page logic.
+          sale.paymentStatus !== "paid" &&
+          // Execute this step as part of the page logic.
+          sale.dueDate &&
+          // Execute this step as part of the page logic.
+          new Date(sale.dueDate) < now;
+
+        // Determine status label
+        const status =
+          // Execute this step as part of the page logic.
+          sale.paymentStatus === "paid"
+            // Execute this step as part of the page logic.
+            ? "paid"
+            // Execute this step as part of the page logic.
+            : (isOverdue ? "overdue" : "unpaid");
+
+        // Badge color styling
+        const cls =
+          // Execute this step as part of the page logic.
+          status === "paid"
+            // Execute this step as part of the page logic.
+            ? "bg-success"
+            // Execute this step as part of the page logic.
+            : (status === "overdue"
+              // Execute this step as part of the page logic.
+              ? "bg-danger"
+              // Execute this step as part of the page logic.
+              : "bg-warning text-dark");
+
+        // Return a value from this function.
+        return `
+          <tr>
+            <td>${sale.buyerName}</td>
+            <td>${sale.produceName}</td>
+            <td>UGX ${Number(sale.amountDue || 0).toLocaleString()}</td>
+            <td>${sale.branch || "-"}</td>
+            <td>${sale.dueDate ? new Date(sale.dueDate).toLocaleDateString() : "-"}</td>
+            <td><span class="badge ${cls}">${status}</span></td>
+          </tr>
+        `;
+      // Execute this step as part of the page logic.
+      }).join("");
+
+      // Insert rows into credit report table
+      document.getElementById("reportCreditBody").innerHTML =
+        // Execute this step as part of the page logic.
+        rows || "<tr><td colspan='6'>No credit sales found.</td></tr>";
+    // Close the current code block.
+    }
+
+
+    // Loads ALL reports together
+    async function loadReports() {
+      // Run multiple asynchronous tasks in parallel.
+      await Promise.all([
+        // Execute this step as part of the page logic.
+        loadKpis(),
+        // Execute this step as part of the page logic.
+        loadStockReport(),
+        // Execute this step as part of the page logic.
+        loadCreditReport()
+      // Execute this step as part of the page logic.
+      ]);
+    // Close the current code block.
+    }
+
+
+    // Filter form submission
+    document.getElementById("reportFilterForm").addEventListener("submit", async (e) => {
+
+      // Execute this step as part of the page logic.
+      e.preventDefault(); // stop page refresh
+
+      // Execute this step as part of the page logic.
+      await loadReports(); // reload reports with filters
+    // Execute this step as part of the page logic.
+    });
+
+
+    // Clear filter button
+    document.getElementById("clearReportFilterBtn").addEventListener("click", async () => {
+
+      // Reset filter fields
+      document.getElementById("reportBranch").value = "";
+      // Read a DOM element from the page by its ID.
+      document.getElementById("dueFrom").value = "";
+      // Read a DOM element from the page by its ID.
+      document.getElementById("dueTo").value = "";
+
+      // Reload reports
+      await loadReports();
+    // Execute this step as part of the page logic.
+    });
+
+
+    // Page startup logic
+    (async () => {
+
+      // Enable logout functionality
+      setupLogout();
+
+      // Confirm user is a manager
+      const ok = await guardManagerAccess();
+
+      // If not manager, stop loading page
+      if (!ok) return;
+
+      // Load all reports
+      await loadReports();
+
+    // Immediately invoke this startup function.
+    })();
+  </script>
+</body>
+
+</html>

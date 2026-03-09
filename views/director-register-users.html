@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KGL Director Register Users</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+  <link href="/css/dashboard.css" rel="stylesheet">
+</head>
+
+<body>
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <img src="/imgs/logo.png" alt="KGL Logo" class="logo">
+      <h4>Director</h4>
+    </div>
+    <hr>
+    <a href="/director-dashboard.html"><i class="fa-solid fa-chart-line me-2"></i>Dashboard</a>
+    <a href="/director-register-users.html"><i class="fa-solid fa-user-plus me-2"></i>Register Users</a>
+    <a href="/director-branch-comparison.html"><i class="fa-solid fa-code-compare me-2"></i>Branch Performance</a>
+    <a href="/director-produce-performance.html"><i class="fa-solid fa-seedling me-2"></i>Produce Performance</a>
+    <a href="/index.html" id="logoutLink"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</a>
+  </div>
+
+  <div class="content">
+    <div class="mb-4">
+      <h3 id="directorRegisterTitle">Register User</h3>
+    </div>
+
+    <div id="directorAlert" class="alert d-none" role="alert"></div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Register User</h5>
+      </div>
+      <div class="card-body">
+        <form id="registerUserForm" class="row g-3">
+          <div class="col-md-4">
+            <label class="form-label">Full Name</label>
+            <input type="text" class="form-control" name="name" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Email</label>
+            <input type="email" class="form-control" name="email" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Phone</label>
+            <input type="text" class="form-control" name="phone" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Password</label>
+            <input type="password" class="form-control" name="password" minlength="6" required>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Role</label>
+            <select class="form-select" name="role" required>
+              <option value="">Select role</option>
+              <option value="Manager">Manager</option>
+              <option value="Sales Agent">Sales Agent</option>
+            </select>
+          </div>
+          <div class="col-md-4">
+            <label class="form-label">Branch</label>
+            <select class="form-select" name="branch" required>
+              <option value="">Select branch</option>
+              <option value="Matugga">Matugga</option>
+              <option value="Maganjo">Maganjo</option>
+            </select>
+          </div>
+          <div class="col-12">
+            <button type="submit" class="btn btn-primary">
+              <i class="fa-solid fa-user-plus me-2"></i>Register User
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+
+    <div class="card shadow-sm mb-4">
+      <div class="card-header bg-light d-flex justify-content-between align-items-center">
+        <h5 class="mb-0">Registered Users</h5>
+        <span id="registeredUsersCount" class="badge text-bg-secondary">0</span>
+      </div>
+      <div class="card-body">
+        <div class="table-responsive">
+          <table class="table table-sm align-middle">
+            <thead>
+              <tr>
+                <th>Name</th>
+                <th>Email</th>
+                <th>Phone</th>
+                <th>Role</th>
+                <th>Branch</th>
+              </tr>
+            </thead>
+            <tbody id="registeredUsersBody">
+              <tr>
+                <td colspan="5" class="text-muted">Loading registered users...</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <footer class="footer text-center">
+    &copy; 2026 Karibu Groceries LTD
+  </footer>
+
+  <script>
+    // Base URL of the backend API server.
+    const API_BASE_URL = 'http://localhost:3000';
+    // Read the authentication token saved after login.
+    const token = localStorage.getItem('token');
+
+    // If there is no token, the user is not logged in.
+    if (!token) {
+      // Redirect unauthenticated users to the login page.
+      window.location.href = '/login.html';
+    }
+
+    // Build request headers and include Authorization token.
+    function authHeaders(extra = {}) {
+      // Return merged headers plus Bearer token for protected requests.
+      return { ...extra, Authorization: `Bearer ${token}` };
+    }
+
+    // Show feedback messages in the director alert box.
+    function showAlert(type, message, timeoutMs = 3500) {
+      // Get the alert element from the page.
+      const alert = document.getElementById('directorAlert');
+      // Apply Bootstrap alert style based on message type.
+      alert.className = `alert alert-${type}`;
+      // Set alert text.
+      alert.textContent = message;
+      // Make the alert visible.
+      alert.classList.remove('d-none');
+
+      // Auto-hide alert only when timeout is greater than zero.
+      if (timeoutMs > 0) {
+        // Hide alert after the configured delay.
+        setTimeout(() => alert.classList.add('d-none'), timeoutMs);
+      }
+    }
+
+    // Attach logout behavior to the logout link.
+    function setupLogout() {
+      // Get logout link element.
+      const logoutLink = document.getElementById('logoutLink');
+      // Stop if logout link is missing.
+      if (!logoutLink) return;
+
+      // Handle logout click.
+      logoutLink.addEventListener('click', async (e) => {
+        // Prevent default navigation until cleanup is done.
+        e.preventDefault();
+
+        // Try to notify backend about logout.
+        try {
+          // Send logout request to server.
+          await fetch(`${API_BASE_URL}/logout`, { method: 'POST', headers: authHeaders() });
+        // Ignore logout request failures.
+        } catch (_) { }
+
+        // Remove token from local storage.
+        localStorage.removeItem('token');
+        // Remove cached user profile from local storage.
+        localStorage.removeItem('userProfile');
+        // Redirect to login page after logout.
+        window.location.href = '/login.html';
+      });
+    }
+
+    // Fetch protected API endpoints and handle expired/invalid sessions.
+    async function fetchProtected(url) {
+      // Send request with auth headers.
+      const res = await fetch(url, { headers: authHeaders() });
+
+      // Check unauthorized or forbidden response codes.
+      if (res.status === 401 || res.status === 403) {
+        // Remove invalid token.
+        localStorage.removeItem('token');
+        // Remove stale user profile.
+        localStorage.removeItem('userProfile');
+        // Redirect to login when session is invalid.
+        window.location.href = '/login.html';
+        // Return null to signal caller to stop.
+        return null;
+      }
+
+      // Return successful/handled response object.
+      return res;
+    }
+
+    // Ensure only director role can access this page.
+    async function guardDirectorAccess() {
+      // Request current user profile.
+      const res = await fetchProtected(`${API_BASE_URL}/auth/profile`);
+      // Stop if request failed due to auth redirect.
+      if (!res) return false;
+
+      // Parse profile response JSON.
+      const user = await res.json();
+
+      // Compare user role to "director" safely.
+      if ((user.role || '').toLowerCase() !== 'director') {
+        // Redirect non-director users away from this page.
+        window.location.href = '/manager.html';
+        // Return false to block further page initialization.
+        return false;
+      }
+
+      // Return user object when access is allowed.
+      return user;
+    }
+
+    // Send registration data to backend to create a new user.
+    async function registerUser(payload) {
+      // Call register endpoint with JSON payload.
+      const res = await fetch(`${API_BASE_URL}/register`, {
+        // Use HTTP POST for user creation.
+        method: 'POST',
+        // Include auth header and JSON content type.
+        headers: authHeaders({ 'Content-Type': 'application/json' }),
+        // Convert payload object to JSON string.
+        body: JSON.stringify(payload)
+      });
+
+      // Handle invalid or expired auth token.
+      if (res.status === 401 || res.status === 403) {
+        // Remove invalid token.
+        localStorage.removeItem('token');
+        // Remove stale profile data.
+        localStorage.removeItem('userProfile');
+        // Redirect to login page.
+        window.location.href = '/login.html';
+        // Return null to indicate auth failure.
+        return null;
+      }
+
+      // Return backend response for caller handling.
+      return res;
+    }
+
+    // Escape HTML special characters before rendering user data.
+    function escapeHtml(value = '') {
+      // Convert any value to string before escaping.
+      return String(value)
+        // Replace ampersands first to avoid double escaping.
+        .replace(/&/g, '&amp;')
+        // Escape less-than characters.
+        .replace(/</g, '&lt;')
+        // Escape greater-than characters.
+        .replace(/>/g, '&gt;')
+        // Escape double quotes.
+        .replace(/"/g, '&quot;')
+        // Escape single quotes.
+        .replace(/'/g, '&#39;');
+    }
+
+    // Load and render registered non-director users.
+    async function loadRegisteredUsers() {
+      // Request all users from backend.
+      const usersRes = await fetchProtected(`${API_BASE_URL}/users`);
+      // Stop when auth check already redirected user.
+      if (!usersRes) return;
+
+      // Check if server returned an error response.
+      if (!usersRes.ok) {
+        // Show error message if loading users fails.
+        showAlert('danger', 'Failed to load registered users.');
+        // Stop further processing on failure.
+        return;
+      }
+
+      // Parse users response JSON.
+      const users = await usersRes.json();
+      // Keep only users whose role is not director.
+      const registeredUsers = (Array.isArray(users) ? users : []).filter(
+        // Normalize role value and exclude directors.
+        (user) => (user.role || '').toLowerCase() !== 'director'
+      );
+
+      // Get table body where users will be displayed.
+      const body = document.getElementById('registeredUsersBody');
+      // Get badge element that shows user count.
+      const count = document.getElementById('registeredUsersCount');
+      // Update count badge text.
+      count.textContent = String(registeredUsers.length);
+
+      // If there are no registered users to show.
+      if (!registeredUsers.length) {
+        // Render fallback table row message.
+        body.innerHTML = '<tr><td colspan="5" class="text-muted">No registered users yet.</td></tr>';
+        // Stop after rendering empty state.
+        return;
+      }
+
+      // Render table rows for each registered user.
+      body.innerHTML = registeredUsers.map((user) => `
+        <tr>
+          <td>${escapeHtml(user.name || '-')}</td>
+          <td>${escapeHtml(user.email || '-')}</td>
+          <td>${escapeHtml(user.phone || '-')}</td>
+          <td>${escapeHtml(user.role || '-')}</td>
+          <td>${escapeHtml(user.branch || '-')}</td>
+        </tr>
+      `).join('');
+    }
+
+    // Handle register form submission.
+    document.getElementById('registerUserForm').addEventListener('submit', async (e) => {
+      // Prevent default form submission and page refresh.
+      e.preventDefault();
+
+      // Get submitted form element.
+      const form = e.target;
+      // Convert form entries into plain object payload.
+      const payload = Object.fromEntries(new FormData(form).entries());
+
+      // Start registration request flow.
+      try {
+        // Send registration request to backend.
+        const res = await registerUser(payload);
+        // Stop if auth handling already redirected.
+        if (!res) return;
+
+        // Parse registration response JSON.
+        const result = await res.json();
+        // If server indicates registration failed.
+        if (!res.ok) {
+          // Show backend error message or fallback text.
+          showAlert('danger', result.message || result.error || 'Failed to register user.');
+          // Stop on failed registration.
+          return;
+        }
+
+        // Show success message after registration.
+        showAlert('success', 'User registered successfully.');
+        // Reset form fields.
+        form.reset();
+        // Reload users table so new user appears.
+        await loadRegisteredUsers();
+
+      // Handle network or unexpected errors.
+      } catch (_) {
+        // Show generic connectivity error.
+        showAlert('danger', 'Unable to connect to backend.');
+      }
+    });
+
+    // Run page startup sequence immediately.
+    (async () => {
+      // Enable logout functionality.
+      setupLogout();
+
+      // Confirm current user has director access.
+      const user = await guardDirectorAccess();
+      // Stop if user failed access guard.
+      if (!user) return;
+
+      // Load registered users list after access check.
+      await loadRegisteredUsers();
+    })();
+  </script>
+</body>
+
+</html>

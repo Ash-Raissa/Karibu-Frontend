@@ -1,0 +1,206 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.0.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="https://fonts.googleapis.com/css2?family=Roboto:wght@400;500;700&display=swap" rel="stylesheet">
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+
+<body id="logBody">
+    <!-- Centered login card -->
+    <div class="container min-vh-100 d-flex align-items-center justify-content-center">
+        <div class="row w-100 justify-content-center">
+            <div class="col-lg-8 col-md-10">
+                <div class="card shadow-lg border-0">
+                    <div class="row g-0">
+                        <!-- Left side image (hidden on small screens) -->
+                        <div class="col-md-5 d-none d-md-block">
+                            <img src="/imgs/login.jpg" class="img-fluid h-100 login-side-image" alt="Login Image">
+                        </div>
+                        <!-- Right side login form -->
+                        <div class="col-md-7">
+                            <div class="card-body p-4 text-center">
+                                <img src="/imgs/logo.png" alt="Logo" class="mb-3 login-logo">
+                                <form id="loginForm">
+                                    <fieldset>
+                                        <div class="mb-3 text-start">
+                                            <label class="form-label">Email Address</label>
+                                            <input type="email" id="email" class="form-control"
+                                                placeholder="example@gmail.com" required>
+                                        </div>
+                                        <div class="mb-3 text-start">
+                                            <label class="form-label">Password</label>
+                                            <input type="password" id="password" class="form-control" required>
+                                        </div>
+                                        <div class="form-check mb-3 text-start">
+                                            <input type="checkbox" class="form-check-input" id="rememberMe">
+                                            <label for="rememberMe" class="form-check-label">Remember me</label>
+                                        </div>
+                                    </fieldset>
+                                    <button type="submit" id="loginBtn"
+                                        class="btn btn-success w-100 mt-2">Login</button>
+                                    <p id="message" class="mt-2 text-center small"></p>
+                                    <!-- <p class="text-center mt-3 mb-0">
+                                        Don't have an account?
+                                        <a href="signUp.html" class="text-success text-decoration-none fw-bold">Sign up
+                                            here</a>
+                                    </p> -->
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <script>
+        // All login requests will be sent to this server
+        const API_BASE_URL = 'http://localhost:3000'
+
+
+        // Object that determines which dashboard a user should go to
+        // depending on their role in the system
+        const redirectByRole = {
+            // Execute this step as part of the page logic.
+            manager: '/manager.html',
+            // Execute this step as part of the page logic.
+            'sales agent': '/sales-agent-dashboard.html',
+            // Execute this step as part of the page logic.
+            director: '/director-dashboard.html'
+        // Close the current code block.
+        }
+
+
+        // Add an event listener to the login form
+        // This runs when the user clicks the login button
+        document.getElementById('loginForm').addEventListener('submit', async (e) => {
+
+            // Prevent the browser from refreshing the page after form submission
+            e.preventDefault()
+
+            // Get the email entered by the user
+            const email = document.getElementById('email').value
+
+            // Get the password entered by the user
+            const password = document.getElementById('password').value
+
+            // Element used to display messages to the user (errors or success)
+            const messageEl = document.getElementById('message')
+
+            // Start error-handled execution for the following operations.
+            try {
+
+                // Send login request to the backend server
+                const response = await fetch(`${API_BASE_URL}/login`, {
+                    // Execute this step as part of the page logic.
+                    method: 'POST',
+
+                    // Tell the server we are sending JSON data
+                    headers: { 'Content-Type': 'application/json' },
+
+                    // Convert email and password into JSON format
+                    body: JSON.stringify({ email, password })
+                // Execute this step as part of the page logic.
+                })
+
+
+                // Convert server response to JSON format
+                const data = await response.json()
+
+
+                // If login failed (wrong email or password)
+                if (!response.ok) {
+
+                    // Show error message returned by the server
+                    messageEl.textContent = data.message || 'Login failed'
+
+                    // Apply red styling to the message
+                    messageEl.className = 'mt-2 text-center small text-danger'
+
+                    // Return a value from this function.
+                    return
+                // Close the current code block.
+                }
+
+
+                // If login is successful, save the authentication token
+                // This token is used to access protected routes
+                localStorage.setItem('token', data.token)
+
+
+                // Fetch the logged-in user's profile information
+                const profileRes = await fetch(`${API_BASE_URL}/auth/profile`, {
+
+                    // Send the token so the server knows who is requesting
+                    headers: { Authorization: `Bearer ${data.token}` }
+                // Execute this step as part of the page logic.
+                })
+
+
+                // Convert profile response to JSON
+                const profileData = await profileRes.json()
+
+
+                // If loading the profile failed
+                if (!profileRes.ok) {
+
+                    // Remove the token since something went wrong
+                    localStorage.removeItem('token')
+
+                    // Show error message
+                    messageEl.textContent = profileData.message || 'Failed to load user profile'
+
+                    // Execute this step as part of the page logic.
+                    messageEl.className = 'mt-2 text-center small text-danger'
+
+                    // Return a value from this function.
+                    return
+                // Close the current code block.
+                }
+
+
+                // If everything worked correctly
+                messageEl.textContent = 'Login successful'
+
+                // Show success message in green
+                messageEl.className = 'mt-2 text-center small text-success'
+
+
+                // Save a welcome message that will appear on the dashboard
+                // sessionStorage keeps data only for the current browser tab
+                sessionStorage.setItem('flashMessage', JSON.stringify({
+                    // Execute this step as part of the page logic.
+                    type: 'success',
+                    // Execute this step as part of the page logic.
+                    message: 'Welcome to your dashboard.'
+                // Execute this step as part of the page logic.
+                }))
+
+
+                // Redirect the user based on their role
+                // Convert role to lowercase to avoid case mismatch
+                window.location.href = redirectByRole[(profileData.role || '').toLowerCase()] || '/'
+
+            // Handle errors thrown by the previous try block.
+            } catch (error) {
+
+                // If server is unreachable or another error occurs
+                messageEl.textContent = 'Server error'
+
+                // Execute this step as part of the page logic.
+                messageEl.className = 'mt-2 text-center small text-danger'
+            // Close the current code block.
+            }
+        // Execute this step as part of the page logic.
+        })
+    </script>
+    <footer class="footer text-center">
+        &copy; 2026 Karibu Groceries LTD
+    </footer>
+</body>
+
+</html>

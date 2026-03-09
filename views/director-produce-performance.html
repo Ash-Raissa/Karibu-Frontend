@@ -1,0 +1,295 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KGL Director Produce Performance</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+  <link href="/css/dashboard.css" rel="stylesheet">
+</head>
+
+<body>
+  <!-- Sidebar navigation for director pages -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <img src="/imgs/logo.png" alt="KGL Logo" class="logo">
+      <h4>Director</h4>
+    </div>
+    <hr>
+    <a href="/director-dashboard.html"><i class="fa-solid fa-chart-line me-2"></i>Dashboard</a>
+    <a href="/director-register-users.html"><i class="fa-solid fa-user-plus me-2"></i>Register Users</a>
+    <a href="/director-branch-comparison.html"><i class="fa-solid fa-code-compare me-2"></i>Branch Performance</a>
+    <a href="/director-produce-performance.html"><i class="fa-solid fa-seedling me-2"></i>Produce Performance</a>
+    <a href="/index.html" id="logoutLink"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</a>
+  </div>
+
+  <!-- Main produce performance area -->
+  <div class="content">
+    <div class="mb-4">
+      <h3 id="directorProduceTitle">Produce Performance</h3>
+    </div>
+
+    <!-- Feedback messages -->
+    <div id="directorAlert" class="alert d-none" role="alert"></div>
+
+    <!-- Produce performance table -->
+    <div class="card shadow-sm">
+      <div class="card-header bg-light">
+        <h5 class="mb-0">Produce Performance</h5>
+      </div>
+      <div class="card-body table-responsive">
+        <table class="table table-bordered table-striped mb-0">
+          <thead>
+            <tr>
+              <th>Produce</th>
+              <th>Total Sold (kg)</th>
+              <th>Revenue</th>
+              <th>Profit</th>
+            </tr>
+          </thead>
+          <tbody id="producePerformanceBody"></tbody>
+        </table>
+      </div>
+    </div>
+  </div>
+
+
+  <script>
+    // Base URL of the backend API server
+    // All requests from this dashboard will be sent to this address
+    const API_BASE_URL = 'http://localhost:3000';
+
+    // Get the login token stored in the browser
+    // This token was saved when the user logged in
+    const token = localStorage.getItem('token');
+
+    // If no token exists, it means the user is not logged in
+    // Redirect them back to the login page
+    if (!token) window.location.href = '/login.html';
+
+
+    // Function to attach authorization headers to API requests
+    // "extra" allows additional headers like Content-Type
+    function authHeaders(extra = {}) {
+
+      // Spread operator (...) merges headers together
+      return {
+        // Execute this step as part of the page logic.
+        ...extra,
+
+        // Authorization header used to verify the logged-in user
+        Authorization: `Bearer ${token}`
+      // Close and end this object or function expression.
+      };
+    // Close the current code block.
+    }
+
+
+    // Function to display alerts/messages on the dashboard
+    function showAlert(type, message, timeoutMs = 3500) {
+
+      // Get the alert element from the HTML page
+      const alert = document.getElementById('directorAlert');
+
+      // Apply Bootstrap alert style (example: alert-danger)
+      alert.className = `alert alert-${type}`;
+
+      // Insert the message text
+      alert.textContent = message;
+
+      // Make sure the alert is visible
+      alert.classList.remove('d-none');
+
+      // Automatically hide the alert after the timeout
+      if (timeoutMs > 0) {
+        // Update CSS classes to change UI state.
+        setTimeout(() => alert.classList.add('d-none'), timeoutMs);
+      // Close the current code block.
+      }
+    // Close the current code block.
+    }
+
+
+    // Function that handles logout functionality
+    function setupLogout() {
+
+      // Get logout button/link from the page
+      const logoutLink = document.getElementById('logoutLink');
+
+      // If logout link does not exist, stop the function
+      if (!logoutLink) return;
+
+      // Add click event listener to the logout link
+      logoutLink.addEventListener('click', async (e) => {
+
+        // Prevent default link behavior
+        e.preventDefault();
+
+        // Start error-handled execution for the following operations.
+        try {
+
+          // Send logout request to the server
+          await fetch(`${API_BASE_URL}/logout`, {
+            // Execute this step as part of the page logic.
+            method: 'POST',
+            // Execute this step as part of the page logic.
+            headers: authHeaders()
+          // Execute this step as part of the page logic.
+          });
+
+        // Handle errors thrown by the previous try block.
+        } catch (_) {
+          // Ignore any errors from the logout request
+        }
+
+        // Remove stored login data from the browser
+        localStorage.removeItem('token');
+        // Remove stored session data from local storage.
+        localStorage.removeItem('userProfile');
+
+        // Redirect user back to login page
+        window.location.href = '/login.html';
+      // Execute this step as part of the page logic.
+      });
+    // Close the current code block.
+    }
+
+
+    // Function used to fetch protected resources from the API
+    // If the token is invalid, the user is redirected to login
+    async function fetchProtected(url) {
+
+      // Send request with authorization header
+      const res = await fetch(url, {
+        // Execute this step as part of the page logic.
+        headers: authHeaders()
+      // Execute this step as part of the page logic.
+      });
+
+      // If server says unauthorized (401) or forbidden (403)
+      if (res.status === 401 || res.status === 403) {
+
+        // Remove invalid login data
+        localStorage.removeItem('token');
+        // Remove stored session data from local storage.
+        localStorage.removeItem('userProfile');
+
+        // Redirect to login
+        window.location.href = '/login.html';
+
+        // Return a value from this function.
+        return null;
+      // Close the current code block.
+      }
+
+      // Return the response if everything is fine
+      return res;
+    // Close the current code block.
+    }
+
+
+    // Function that ensures only the DIRECTOR can access this page
+    async function guardDirectorAccess() {
+
+      // Request the logged-in user profile
+      const res = await fetchProtected(`${API_BASE_URL}/auth/profile`);
+
+      // If request failed (unauthorized), stop
+      if (!res) return false;
+
+      // Convert response to JSON
+      const user = await res.json();
+
+      // Check the role of the logged-in user
+      if ((user.role || '').toLowerCase() !== 'director') {
+
+        // If not director, redirect them to manager page
+        window.location.href = '/manager.html';
+
+        // Return a value from this function.
+        return false;
+      // Close the current code block.
+      }
+
+      // If user is director, allow access
+      return true;
+    // Close the current code block.
+    }
+
+
+    // Function that loads the produce performance data
+    // This shows totals of produce sold, revenue, and profit
+    async function loadProducePerformance() {
+
+      // Request produce performance data from the API
+      const res = await fetchProtected(`${API_BASE_URL}/director/produce-performance`);
+
+      // If request failed, stop
+      if (!res) return;
+
+      // Convert response to JSON
+      const result = await res.json();
+
+      // If server returned an error
+      if (!res.ok) {
+        // Execute this step as part of the page logic.
+        showAlert('danger', result.message || 'Failed to load produce performance.');
+        // Return a value from this function.
+        return;
+      // Close the current code block.
+      }
+
+      // Get the table body where data will be displayed
+      const table = document.getElementById('producePerformanceBody');
+
+      // Clear existing table rows
+      table.innerHTML = '';
+
+      // Loop through each produce record returned from the server
+      (result.data || []).forEach((row) => {
+
+        // Add a new row to the table
+        table.innerHTML += `
+      <tr>
+        <td>${row.produceName || '-'}</td>
+        <td>${row.totalSold || 0}</td>
+        <td>UGX ${row.revenue || 0}</td>
+        <td>UGX ${Math.round(row.profit || 0)}</td>
+      </tr>
+    `;
+      // Execute this step as part of the page logic.
+      });
+
+      // If there is no data, show a message
+      if (!table.innerHTML) {
+        // Render dynamic HTML content into the target element.
+        table.innerHTML = '<tr><td colspan="4">No produce performance data available.</td></tr>';
+      // Close the current code block.
+      }
+    // Close the current code block.
+    }
+
+
+    // Page startup function (runs immediately when page loads)
+    (async () => {
+
+      // Enable logout functionality
+      setupLogout();
+
+      // Check if the logged-in user is a director
+      const ok = await guardDirectorAccess();
+
+      // If not director, stop the page execution
+      if (!ok) return;
+
+      // Load produce performance data for the director
+      await loadProducePerformance();
+
+    // Immediately invoke this startup function.
+    })();
+  </script>
+</body>
+
+</html>

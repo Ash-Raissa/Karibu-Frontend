@@ -1,0 +1,332 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KGL Sales Agent Performance</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+  <link href="/css/dashboard.css" rel="stylesheet">
+</head>
+<body>
+  <!-- Sidebar for sales-agent pages -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <img src="/imgs/logo.png" alt="KGL Logo" class="logo">
+      <h4>Sales Agent</h4>
+    </div>
+    <hr>
+    <a href="/sales-agent-dashboard.html"><i class="fa-solid fa-chart-line me-2"></i>Dashboard</a>
+    <a href="/performance.html"><i class="fa-solid fa-chart-simple me-2"></i>Performance</a>
+    <a href="/index.html" id="logoutLink"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</a>
+  </div>
+
+  <!-- Main performance content -->
+  <div class="content">
+    <div class="mb-4">
+      <h3 id="performanceTitle">My Performance</h3>
+    </div>
+
+    <!-- Feedback messages -->
+    <div id="performanceAlert" class="alert d-none" role="alert"></div>
+
+    <div class="row g-3">
+      <div class="col-md-4">
+        <div class="card shadow-sm text-center p-3">
+          <small class="text-muted">My Total Sales Today</small>
+          <h4 class="mb-0" id="myTotalSalesToday">UGX 0</h4>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card shadow-sm text-center p-3">
+          <small class="text-muted">My Total Credit Issued</small>
+          <h4 class="mb-0" id="myTotalCreditIssued">UGX 0</h4>
+        </div>
+      </div>
+      <div class="col-md-4">
+        <div class="card shadow-sm text-center p-3">
+          <small class="text-muted">My Total Revenue</small>
+          <h4 class="mb-0" id="myTotalRevenue">UGX 0</h4>
+        </div>
+      </div>
+    </div>
+  </div>
+
+
+  <script>
+    // Base URL of the backend server where all API requests are sent
+const API_BASE_URL = "http://localhost:3000";
+
+// Retrieve the login token stored in the browser after a successful login
+const token = localStorage.getItem("token");
+
+// If there is no token, the user is not authenticated
+// Redirect them to the login page
+if (!token) window.location.href = "/login.html";
+
+
+// Function used to attach authentication headers to API requests
+// It adds the Bearer token so the backend can verify the user
+function authHeaders(extra = {}) {
+  // Return a value from this function.
+  return { ...extra, Authorization: `Bearer ${token}` };
+// Close the current code block.
+}
+
+
+// Function to convert a name into a possessive form
+// Example: "James" -> "James'" and "John" -> "John's"
+function toPossessive(name = "User") {
+
+  // Convert the name to a string and remove extra spaces
+  const safe = String(name || "User").trim() || "User";
+
+  // If the name ends with "s", just add an apostrophe
+  // Otherwise add "'s"
+  return safe.endsWith("s") ? `${safe}'` : `${safe}'s`;
+// Close the current code block.
+}
+
+
+// Function to handle authentication errors returned by the backend
+function handleAuthError(res) {
+
+  // If the response status is 401 (Unauthorized) or 403 (Forbidden)
+  if (res.status === 401 || res.status === 403) {
+
+    // Remove stored authentication data
+    localStorage.removeItem("token");
+    // Remove stored session data from local storage.
+    localStorage.removeItem("userProfile");
+
+    // Redirect the user to the login page
+    window.location.href = "/login.html";
+
+    // Return true to indicate an auth error occurred
+    return true;
+  // Close the current code block.
+  }
+
+  // If no authentication error occurred
+  return false;
+// Close the current code block.
+}
+
+
+// Function to display alert messages on the page
+function showAlert(type, message, timeoutMs = 3500) {
+
+  // Get the alert container element
+  const alert = document.getElementById("performanceAlert");
+
+  // Set Bootstrap alert style depending on the type (success, danger, warning etc.)
+  alert.className = `alert alert-${type}`;
+
+  // Set the message text inside the alert
+  alert.textContent = message;
+
+  // Make the alert visible by removing the hidden class
+  alert.classList.remove("d-none");
+
+  // Automatically hide the alert after the specified time
+  if (timeoutMs > 0) {
+    // Update CSS classes to change UI state.
+    setTimeout(() => alert.classList.add("d-none"), timeoutMs);
+  // Close the current code block.
+  }
+// Close the current code block.
+}
+
+
+// Function to show a temporary message stored in sessionStorage
+// Usually used after redirecting from another page
+function consumeFlashMessage() {
+
+  // Retrieve stored message
+  const raw = sessionStorage.getItem("flashMessage");
+
+  // If no message exists, exit the function
+  if (!raw) return;
+
+  // Remove the message so it doesn't appear again
+  sessionStorage.removeItem("flashMessage");
+
+  // Start error-handled execution for the following operations.
+  try {
+
+    // Convert stored JSON string into an object
+    const { type = "success", message = "" } = JSON.parse(raw);
+
+    // Display the alert if a message exists
+    if (message) showAlert(type, message);
+
+  // Handle errors thrown by the previous try block.
+  } catch (_) {}
+// Close the current code block.
+}
+
+
+// Function that sets up the logout functionality
+function setupLogout() {
+
+  // Get the logout button or link
+  const logoutLink = document.getElementById("logoutLink");
+
+  // If logout link does not exist, stop execution
+  if (!logoutLink) return;
+
+  // Add click event listener to the logout button
+  logoutLink.addEventListener("click", async (e) => {
+
+    // Prevent the default link behavior
+    e.preventDefault();
+
+    // Start error-handled execution for the following operations.
+    try {
+
+      // Notify backend that the user is logging out
+      await fetch(`${API_BASE_URL}/logout`, { method: "POST", headers: authHeaders() });
+
+    // Handle errors thrown by the previous try block.
+    } catch (_) {}
+
+    // Clear stored login data
+    localStorage.removeItem("token");
+    // Remove stored session data from local storage.
+    localStorage.removeItem("userProfile");
+
+    // Redirect user to login page
+    window.location.href = "/login.html";
+  // Execute this step as part of the page logic.
+  });
+// Close the current code block.
+}
+
+
+// Function used to format numbers as Ugandan currency
+// Example: 1000000 -> "UGX 1,000,000"
+function formatUGX(value) {
+  // Return a value from this function.
+  return `UGX ${Number(value || 0).toLocaleString()}`;
+// Close the current code block.
+}
+
+
+// Function to confirm that the logged-in user is a Sales Agent
+async function verifySalesAgentRole() {
+
+  // Request the logged-in user's profile from the backend
+  const res = await fetch(`${API_BASE_URL}/auth/profile`, { headers: authHeaders() });
+
+  // Check if authentication error occurred
+  if (handleAuthError(res)) return false;
+
+  // Convert response into JSON
+  const data = await res.json();
+
+  // Convert role to lowercase to avoid case mismatch
+  const role = (data.role || "").toLowerCase();
+
+  // If the user is NOT a sales agent
+  if (role !== "sales agent") {
+
+    // Redirect director users to director dashboard
+    if (role === "director") {
+      // Redirect the browser to another page.
+      window.location.href = "/director-dashboard.html";
+      // Return a value from this function.
+      return false;
+    // Close the current code block.
+    }
+
+    // Redirect manager users to manager dashboard
+    if (role === "manager") {
+      // Redirect the browser to another page.
+      window.location.href = "/manager.html";
+      // Return a value from this function.
+      return false;
+    // Close the current code block.
+    }
+
+    // Redirect unknown roles to homepage
+    window.location.href = "/";
+    // Return a value from this function.
+    return false;
+  // Close the current code block.
+  }
+
+  // Update the dashboard title to show the sales agent's name
+  document.getElementById("performanceTitle").textContent =
+    // Execute this step as part of the page logic.
+    `${toPossessive(data.name)} Performance`;
+
+  // Return a value from this function.
+  return true;
+// Close the current code block.
+}
+
+
+// Function to load the sales agent's personal performance statistics
+async function loadMyPerformance() {
+
+  // Request performance data from the backend
+  const res = await fetch(`${API_BASE_URL}/sales-agent/performance`, { headers: authHeaders() });
+
+  // Check for authentication errors
+  if (handleAuthError(res)) return;
+
+  // Convert response to JSON
+  const result = await res.json();
+
+  // If the request failed, show an error alert
+  if (!res.ok) {
+    // Execute this step as part of the page logic.
+    showAlert("danger", result.message || "Failed to load performance.");
+    // Return a value from this function.
+    return;
+  // Close the current code block.
+  }
+
+  // Extract the performance data
+  const data = result.data || {};
+
+  // Update dashboard cards with performance numbers
+  document.getElementById("myTotalSalesToday").textContent =
+    // Execute this step as part of the page logic.
+    formatUGX(data.totalSalesToday);
+
+  // Read a DOM element from the page by its ID.
+  document.getElementById("myTotalCreditIssued").textContent =
+    // Execute this step as part of the page logic.
+    formatUGX(data.totalCreditIssued);
+
+  // Read a DOM element from the page by its ID.
+  document.getElementById("myTotalRevenue").textContent =
+    // Execute this step as part of the page logic.
+    formatUGX(data.totalRevenue);
+// Close the current code block.
+}
+
+
+// Main startup function that runs when the page loads
+(async () => {
+
+  // Enable logout functionality
+  setupLogout();
+
+  // Verify that the logged-in user is a sales agent
+  const ok = await verifySalesAgentRole();
+
+  // If the user is not a sales agent, stop execution
+  if (!ok) return;
+
+  // Display any flash message stored from previous page
+  consumeFlashMessage();
+
+  // Load the sales agent's performance statistics
+  await loadMyPerformance();
+// Immediately invoke this startup function.
+})();
+  </script>
+</body>
+</html>

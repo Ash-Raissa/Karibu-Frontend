@@ -1,0 +1,588 @@
+﻿<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>KGL Produce Procurement</title>
+  <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+  <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.2/css/all.min.css" rel="stylesheet">
+  <link href="/css/dashboard.css" rel="stylesheet">
+</head>
+
+<body>
+  <!-- Sidebar navigation for manager pages -->
+  <div class="sidebar">
+    <div class="sidebar-header">
+      <img src="/imgs/logo.png" alt="KGL Logo" class="logo">
+      <h4>Manager</h4>
+    </div>
+
+    <hr>
+
+    <a href="/manager.html"><i class="fa-solid fa-chart-line me-2"></i>Dashboard</a>
+    <a href="/procurement-form.html"><i class="fa-solid fa-boxes-stacked me-2"></i>Procurement</a>
+    <a href="/sales-records.html"><i class="fa-solid fa-money-bill-wave me-2"></i>Sales</a>
+    <a href="/reports.html"><i class="fa-solid fa-chart-column me-2"></i>Reports</a>
+
+    <a href="/index.html" id="logoutLink"><i class="fa-solid fa-right-from-bracket me-2"></i>Logout</a>
+  </div>
+
+  <!-- Main procurement page content -->
+  <div class="content">
+    <div class="container py-4 page-wrap">
+      <div class="card shadow-sm">
+        <div class="card-body">
+          <div class="d-flex justify-content-between align-items-center mb-3">
+            <div>
+              <h4 class="mb-1">Procurement Records</h4>
+            </div>
+            <button class="btn btn-success" data-bs-toggle="modal" data-bs-target="#procurementModal">
+              <i class="fa-solid fa-plus me-2"></i>Procure Produce
+            </button>
+          </div>
+
+          <!-- Feedback messages -->
+          <div id="procurementAlert" class="alert d-none" role="alert"></div>
+          <!-- Date filter for procurement history -->
+          <form id="procurementFilterForm" class="row g-2 align-items-end mb-3">
+            <div class="col-md-4">
+              <label class="form-label">From Date</label>
+              <input type="date" class="form-control" id="filterDateFrom">
+            </div>
+            <div class="col-md-4">
+              <label class="form-label">To Date</label>
+              <input type="date" class="form-control" id="filterDateTo">
+            </div>
+            <div class="col-md-4 d-flex gap-2">
+              <button type="submit" class="btn btn-sm border-0 bg-transparent text-dark" title="Filter"
+                aria-label="Filter">
+                <i class="fa-solid fa-filter"></i>
+              </button>
+              <button type="button" class="btn btn-sm border-0 bg-transparent text-dark" id="clearFilterBtn"
+                title="Clear Filter" aria-label="Clear Filter">
+                <i class="fa-solid fa-rotate-left"></i>
+              </button>
+            </div>
+          </form>
+
+          <div class="table-responsive">
+            <table class="table table-bordered table-striped align-middle mb-0">
+              <thead class="table-light">
+                <tr>
+                  <th>Produce Name</th>
+                  <th>Produce Type</th>
+                  <th>Branch</th>
+                  <th>Tonnage(kg)</th>
+                  <th>Cost(UGX)</th>
+                  <th>Selling Price(UGX)</th>
+                  <th>Date</th>
+                  <th>Dealer Name</th>
+                  <th>Dealer Contact</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody id="procurementTableBody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Modal form for creating or editing procurement records -->
+  <div class="modal fade" id="procurementModal" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg modal-dialog-scrollable">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title" id="procurementModalTitle"><i class="fa-solid fa-clipboard-list me-2"></i>Record
+            Procurement</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+        </div>
+
+        <form id="procurementForm">
+          <input type="hidden" id="procurementId" name="procurementId">
+          <div class="modal-body">
+            <div class="row g-3">
+              <div class="col-md-6">
+                <label class="form-label">Produce Name</label>
+                <select class="form-select" name="produceName" required>
+                  <option value="">Select Produce</option>
+                  <option value="Beans">Beans</option>
+                  <option value="Grain Maize">Grain Maize</option>
+                  <option value="Cow Peas">Cow Peas</option>
+                  <option value="G-nuts">G-nuts</option>
+                  <option value="Soybeans">Soybeans</option>
+                </select>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Produce Type</label>
+                <input type="text" class="form-control" value="Cereal" readonly>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Date</label>
+                <input type="date" class="form-control" name="date" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Time</label>
+                <input type="time" class="form-control" name="time" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Tonnage (kg)</label>
+                <input type="number" class="form-control" name="tonnage" min="1000" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Cost (UGX)</label>
+                <input type="number" class="form-control" name="cost" min="10000" required>
+              </div>
+              <div class="col-md-4">
+                <label class="form-label">Selling Price</label>
+                <input type="number" class="form-control" name="sellingPrice" min="10000" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Dealer Name</label>
+                <input type="text" class="form-control" name="dealerName" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Dealer Contact</label>
+                <input type="text" class="form-control" name="dealerContact" required>
+              </div>
+              <div class="col-md-6">
+                <label class="form-label">Branch</label>
+                <select class="form-select" name="branch" required>
+                  <option value="">Select Branch</option>
+                  <option value="Maganjo">Maganjo</option>
+                  <option value="Matugga">Matugga</option>
+                </select>
+              </div>
+            </div>
+          </div>
+
+          <div class="modal-footer">
+            <button type="button" class="btn btn-outline-secondary" data-bs-dismiss="modal">Cancel</button>
+            <button type="submit" class="btn btn-success" id="procurementSubmitBtn">Save Procurement</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
+
+  <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
+  <script>
+
+    // Declare a constant value used in this script.
+    const API_BASE_URL = "http://localhost:3000";
+
+    // Retrieve the authentication token stored in the browser after login.
+    const token = localStorage.getItem('token');
+
+    // If no token exists, it means the user is not logged in.
+    // Redirect them back to the login page.
+    if (!token) {
+      // Redirect the browser to another page.
+      window.location.href = '/login.html';
+    // Close the current code block.
+    }
+
+    // Function that prepares headers for authenticated API requests.
+    // It automatically attaches the user's token.
+    function authHeaders(extra = {}) {
+      // Return a value from this function.
+      return {
+        // Execute this step as part of the page logic.
+        ...extra, // include any additional headers passed to the function
+        // Execute this step as part of the page logic.
+        Authorization: `Bearer ${token}` // attach the Bearer token for authentication
+      // Close and end this object or function expression.
+      };
+    // Close the current code block.
+    }
+
+    // Function that checks if the server returned an authentication error.
+    function handleAuthError(res) {
+
+      // If server responds with 401 (Unauthorized) or 403 (Forbidden)
+      if (res.status === 401 || res.status === 403) {
+
+        // Remove the stored token
+        localStorage.removeItem('token');
+
+        // Redirect the user to the login page
+        window.location.href = '/login.html';
+
+        // Return true to indicate authentication failure
+        return true;
+      // Close the current code block.
+      }
+
+      // If no authentication error occurred
+      return false;
+    // Close the current code block.
+    }
+
+    // Setup logout functionality for the logout button.
+    function setupLogout() {
+
+      // Get the logout link/button element
+      const logoutLink = document.getElementById('logoutLink');
+
+      // If the element does not exist, stop execution
+      if (!logoutLink) return;
+
+      // Listen for click events on the logout button
+      logoutLink.addEventListener('click', async (e) => {
+
+        // Prevent the default link behavior
+        e.preventDefault();
+
+        // Start error-handled execution for the following operations.
+        try {
+
+          // Notify the backend that the user is logging out
+          await fetch(`${API_BASE_URL}/logout`, { method: 'POST', headers: authHeaders() });
+
+        // Handle errors thrown by the previous try block.
+        } catch (_) { }
+
+        // Remove stored session data from the browser
+        localStorage.removeItem('token');
+        // Remove stored session data from local storage.
+        localStorage.removeItem('userProfile');
+
+        // Redirect user to login page
+        window.location.href = '/login.html';
+      // Execute this step as part of the page logic.
+      });
+    // Close the current code block.
+    }
+
+    // Function to display alert messages on the procurement page.
+    function showAlert(type, message, timeoutMs = 3500) {
+
+      // Get the alert container element
+      const alert = document.getElementById("procurementAlert");
+
+      // Apply Bootstrap alert styling based on alert type
+      alert.className = `alert alert-${type}`;
+
+      // Set the alert message text
+      alert.textContent = message;
+
+      // Make the alert visible
+      alert.classList.remove("d-none");
+
+      // Automatically hide the alert after the specified time
+      if (timeoutMs > 0) {
+        // Update CSS classes to change UI state.
+        setTimeout(() => alert.classList.add("d-none"), timeoutMs);
+      // Close the current code block.
+      }
+    // Close the current code block.
+    }
+
+    // Reset the procurement form to default state.
+    function resetProcurementFormMode() {
+
+      // Clear all form input fields
+      document.getElementById("procurementForm").reset();
+
+      // Clear hidden procurement ID field
+      document.getElementById("procurementId").value = "";
+
+      // Reset modal title to default
+      document.getElementById("procurementModalTitle").innerHTML = '<i class="fa-solid fa-clipboard-list me-2"></i>Record Procurement';
+
+      // Reset submit button text
+      document.getElementById("procurementSubmitBtn").textContent = "Save Procurement";
+    // Close the current code block.
+    }
+
+    // Build query parameters for procurement filtering.
+    function getProcurementFilterQuery() {
+
+      // Get selected start date
+      const dateFrom = document.getElementById("filterDateFrom").value;
+
+      // Get selected end date
+      const dateTo = document.getElementById("filterDateTo").value;
+
+      // Create URLSearchParams object to hold filter parameters
+      const params = new URLSearchParams();
+
+      // Add start date to query if selected
+      if (dateFrom) params.set("dateFrom", dateFrom);
+
+      // Add end date to query if selected
+      if (dateTo) params.set("dateTo", dateTo);
+
+      // Convert parameters to query string
+      const query = params.toString();
+
+      // Return query string or empty string
+      return query ? `?${query}` : "";
+    // Close the current code block.
+    }
+
+    
+    // Load procurement records from the server and display them in the table.
+    async function loadProcurements() {
+
+      // Send request to backend with filter query
+      const res = await fetch(`${API_BASE_URL}/procure${getProcurementFilterQuery()}`, { headers: authHeaders() });
+
+      // Check for authentication error
+      if (handleAuthError(res)) return;
+
+      // Convert response to JSON
+      const result = await res.json();
+
+      // If request failed, show error message
+      if (!res.ok) {
+        // Execute this step as part of the page logic.
+        showAlert("danger", result.message || "Failed to load procurements.");
+        // Return a value from this function.
+        return;
+      // Close the current code block.
+      }
+
+      // Get table body element
+      const table = document.getElementById("procurementTableBody");
+
+      // Clear previous table rows
+      table.innerHTML = "";
+
+      // Loop through procurement records
+      (result.data || []).forEach((item) => {
+
+        // Add a new row for each procurement record
+        table.innerHTML += `
+      <tr>
+        <td>${item.produceName}</td>
+        <td>${item.produceType || "Cereal"}</td>
+        <td>${item.branch}</td>
+        <td>${item.tonnage}</td>
+        <td>${item.cost}</td>
+        <td>${item.sellingPrice}</td>
+        <td>${new Date(item.date).toLocaleDateString()}</td>
+        <td>${item.dealerName}</td>
+        <td>${item.dealerContact}</td>
+        <td class="d-flex gap-2">
+          <button type="button" class="btn btn-sm border-0 bg-transparent text-dark edit-procurement-btn" data-id="${item._id}" title="Edit" aria-label="Edit">
+            <i class="fa-solid fa-pen-to-square"></i>
+          </button>
+          <button type="button" class="btn btn-sm border-0 bg-transparent text-dark delete-procurement-btn" data-id="${item._id}" title="Delete" aria-label="Delete">
+            <i class="fa-solid fa-trash"></i>
+          </button>
+        </td>
+      </tr>
+    `;
+      // Execute this step as part of the page logic.
+      });
+    // Close the current code block.
+    }
+
+    // Open the edit modal with existing procurement data.
+    async function openEditProcurement(id) {
+
+      // Request procurement record by ID
+      const res = await fetch(`${API_BASE_URL}/procure/${id}`, { headers: authHeaders() });
+
+      // Check authentication error
+      if (handleAuthError(res)) return;
+
+      // Convert response to JSON
+      const result = await res.json();
+
+      // If request failed, show error
+      if (!res.ok) {
+        // Execute this step as part of the page logic.
+        showAlert("danger", result.message || "Failed to load procurement.");
+        // Return a value from this function.
+        return;
+      // Close the current code block.
+      }
+
+      // Extract procurement data
+      const item = result.data;
+
+      // Get the form element
+      const form = document.getElementById("procurementForm");
+
+      // Populate form fields with existing data
+      form.produceName.value = item.produceName || "";
+      // Execute this step as part of the page logic.
+      form.date.value = item.date ? new Date(item.date).toISOString().split("T")[0] : "";
+      // Execute this step as part of the page logic.
+      form.time.value = item.time || "";
+      // Execute this step as part of the page logic.
+      form.tonnage.value = item.tonnage ?? "";
+      // Execute this step as part of the page logic.
+      form.cost.value = item.cost ?? "";
+      // Execute this step as part of the page logic.
+      form.sellingPrice.value = item.sellingPrice ?? "";
+      // Execute this step as part of the page logic.
+      form.dealerName.value = item.dealerName || "";
+      // Execute this step as part of the page logic.
+      form.dealerContact.value = item.dealerContact || "";
+      // Execute this step as part of the page logic.
+      form.branch.value = item.branch || "";
+
+      // Store procurement ID in hidden field
+      document.getElementById("procurementId").value = item._id;
+
+      // Change modal title to indicate edit mode
+      document.getElementById("procurementModalTitle").innerHTML = '<i class="fa-solid fa-pen-to-square me-2"></i>Edit Procurement';
+
+      // Change button text
+      document.getElementById("procurementSubmitBtn").textContent = "Update Procurement";
+
+      // Get modal element
+      const modalEl = document.getElementById("procurementModal");
+
+      // Create or retrieve Bootstrap modal instance
+      const modal = bootstrap.Modal.getOrCreateInstance(modalEl);
+
+      // Show modal
+      modal.show();
+    // Close the current code block.
+    }
+
+    // Handle procurement form submission for create and update.
+    document.getElementById("procurementForm").addEventListener("submit", async (e) => {
+      // Prevent normal form submit and page refresh.
+      e.preventDefault();
+      // Read form values into an object.
+      const form = e.target;
+      // Build payload from form inputs.
+      const payload = Object.fromEntries(new FormData(form).entries());
+      // Read hidden procurement id (used for edit mode).
+      const procurementId = payload.procurementId;
+      // Remove helper id from payload before sending.
+      delete payload.procurementId;
+
+      // Determine if request is update or create.
+      const isEditing = Boolean(procurementId);
+      // Build endpoint based on mode.
+      const endpoint = isEditing ? `${API_BASE_URL}/procure/${procurementId}` : `${API_BASE_URL}/procure`;
+      // Choose HTTP method based on mode.
+      const method = isEditing ? "PATCH" : "POST";
+
+      // Execute API request with error handling.
+      try {
+        // Send procurement data to backend.
+        const res = await fetch(endpoint, {
+          // Use selected method.
+          method,
+          // Send JSON with auth headers.
+          headers: authHeaders({ "Content-Type": "application/json" }),
+          // Convert payload to JSON string.
+          body: JSON.stringify(payload)
+        });
+        // Stop if authentication failed.
+        if (handleAuthError(res)) return;
+
+        // Parse backend response.
+        const result = await res.json();
+
+        // Show API error and stop on failure.
+        if (!res.ok) {
+          showAlert("danger", result.error || result.message || "Failed to record procurement.");
+          return;
+        }
+
+        // Show success message.
+        showAlert("success", isEditing ? "Procurement updated successfully." : "Procurement recorded successfully.");
+        // Reset form mode back to create defaults.
+        resetProcurementFormMode();
+
+        // Close modal if open.
+        const modalEl = document.getElementById("procurementModal");
+        const modal = bootstrap.Modal.getInstance(modalEl);
+        if (modal) modal.hide();
+
+        // Reload procurement table with latest data.
+        await loadProcurements();
+      } catch (error) {
+        // Show network error.
+        showAlert("danger", "Unable to connect to backend.");
+      }
+    });
+
+    // Handle edit/delete actions from table buttons.
+    document.getElementById("procurementTableBody").addEventListener("click", async (e) => {
+      // Check if edit button was clicked.
+      const editButton = e.target.closest(".edit-procurement-btn");
+      if (editButton) {
+        // Open edit modal with selected record.
+        await openEditProcurement(editButton.dataset.id);
+        return;
+      }
+
+      // Check if delete button was clicked.
+      const deleteButton = e.target.closest(".delete-procurement-btn");
+      if (!deleteButton) return;
+
+      // Ask user to confirm deletion.
+      const confirmed = window.confirm("Delete this procurement record?");
+      if (!confirmed) return;
+
+      // Get procurement id from clicked button.
+      const id = deleteButton.dataset.id;
+      // Send delete request to backend.
+      const res = await fetch(`${API_BASE_URL}/procure/${id}`, {
+        // Use DELETE method.
+        method: "DELETE",
+        // Include auth headers.
+        headers: authHeaders()
+      });
+      // Stop if authentication failed.
+      if (handleAuthError(res)) return;
+
+      // Parse delete response.
+      const result = await res.json();
+      // Show error if delete failed.
+      if (!res.ok) {
+        showAlert("danger", result.message || "Failed to delete procurement.");
+        return;
+      }
+
+      // Show success after deletion.
+      showAlert("success", "Procurement deleted successfully.");
+      // Reload table data.
+      await loadProcurements();
+    });
+
+    // Apply date filters when filter form is submitted.
+    document.getElementById("procurementFilterForm").addEventListener("submit", async (e) => {
+      // Prevent page refresh.
+      e.preventDefault();
+      // Reload data using active filters.
+      await loadProcurements();
+    });
+
+    // Clear date filters and reload table.
+    document.getElementById("clearFilterBtn").addEventListener("click", async () => {
+      // Clear from date field.
+      document.getElementById("filterDateFrom").value = "";
+      // Clear to date field.
+      document.getElementById("filterDateTo").value = "";
+      // Reload data without date filters.
+      await loadProcurements();
+    });
+
+    // Reset form whenever modal is closed.
+    document.getElementById("procurementModal").addEventListener("hidden.bs.modal", () => {
+      // Return modal to default create mode.
+      resetProcurementFormMode();
+    });
+
+    // Initialize form defaults on page load.
+    resetProcurementFormMode();
+    // Load procurement rows immediately.
+    loadProcurements();
+    // Enable logout behavior.
+    setupLogout();
+  </script>
+</body>
+
+</html>
